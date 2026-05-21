@@ -1,0 +1,114 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.logoIcon {
+  color: #3b82f6;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Plan badge */
+.planBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.badgeFree {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.badgeBasic {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.badgePro {
+  background: rgba(88, 101, 242, 0.15);
+  color: #818cf8;
+  border-color: rgba(88, 101, 242, 0.35);
+}
+
+.badgeElite {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fbbf24;
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+/* Avatar button */
+.avatarBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5865f2, #7c3aed);
+  border: 2px solid rgba(88, 101, 242, 0.5);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.avatarBtn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.3);
+}
+
+.logoutBtn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.logoutBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    padding: 1rem;
+  }
+  .planBadge {
+    display: none;
+  }
+  .logoText {
+    font-size: 1.2rem;
+  }
+}
