@@ -43,7 +43,41 @@ export default function HomePage() {
     }
   }, [user, isAuthLoading, router]);
 
-  if (isAuthLoading || !user) return null;
+  if (isAuthLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#0d0f14",
+          color: "#f0f2f8",
+          padding: "24px",
+          textAlign: "center",
+        }}
+      >
+        <h1>Carregando...</h1>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#0d0f14",
+          color: "#f0f2f8",
+          padding: "24px",
+          textAlign: "center",
+        }}
+      >
+        <h1>Redirecionando para login...</h1>
+      </div>
+    );
+  }
 
   const monthlyRevenue = accountCount * REVENUE_PER_ACCOUNT;
 
