@@ -7,6 +7,7 @@ import AccountModal from "@/src/frontend/views/components/AccountModal";
 import PricingModal from "@/src/frontend/views/components/PricingModal";
 import styles from "./page.module.css";
 import { useHomeViewModel } from "@/src/frontend/viewmodels/useHomeViewModel";
+import type { Account } from "@/src/frontend/models/types";
 
 const REVENUE_PER_ACCOUNT = 400;
 
