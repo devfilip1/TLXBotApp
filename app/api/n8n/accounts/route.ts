@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ type, accounts: allAccounts }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     if (successUpdate) console.error("Error marking success:", successUpdate);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update status" },
       { status: 500 },
