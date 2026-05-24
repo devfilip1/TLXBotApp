@@ -16,9 +16,7 @@ export async function GET(request: Request) {
     }
 
     // Buscar linhas da tabela (1 linha = 1 conta)
-    let query = supabaseAdmin
-      .from("accounts")
-      .select("id, name, encrypted_accounts");
+    let query = supabaseAdmin.from("accounts").select("id, name, password");
 
     if (type === "pending") {
       query = query.eq("needs_sync", true);
@@ -38,7 +36,7 @@ export async function GET(request: Request) {
     const allAccounts = [];
 
     for (const row of rows) {
-      const acc = row.encrypted_accounts as any;
+      const acc = row.password as any;
       if (!acc) continue;
 
       const login = row.name || "";
