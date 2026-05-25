@@ -9,7 +9,7 @@ function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  const { session, refreshSubscription } = useAuthViewModel();
+  const { session, isLoading, refreshSubscription } = useAuthViewModel();
   const [countdown, setCountdown] = useState(5);
   const [hasSynced, setHasSynced] = useState(false);
 
@@ -30,6 +30,13 @@ function SuccessPageContent() {
   }, [sessionId, session?.access_token, hasSynced, refreshSubscription]);
 
   useEffect(() => {
+    if (!isLoading && !session) {
+      const fallbackRedirect = setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+      return () => clearTimeout(fallbackRedirect);
+    }
+
     refreshSubscription();
 
     const interval = setInterval(() => {
@@ -50,7 +57,35 @@ function SuccessPageContent() {
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [router, refreshSubscription]);
+  }, [router, refreshSubscription, isLoading, session]);
+
+  if (!isLoading && !session) {
+    return (
+      <div
+        className={styles.wrapper}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          className={styles.panel}
+          style={{ textAlign: "center", padding: "3rem" }}
+        >
+          <h1
+            style={{ color: "#f59e0b", fontSize: "2rem", marginBottom: "1rem" }}
+          >
+            Sessão não encontrada
+          </h1>
+          <p>
+            Não conseguimos identificar sua sessão de login. Você será
+            redirecionado para o login em alguns segundos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -84,6 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
+    const loadTimeout = window.setTimeout(() => {
+      if (mounted) {
+        console.warn(
+          "[AuthProvider] auth init timed out, continuing without session",
+        );
+        setIsLoading(false);
+      }
+    }, 8000);
+
     const {
       data: { subscription: authListener },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -99,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(loadTimeout);
       authListener?.unsubscribe();
     };
   }, [fetchSubscriptionData]);
