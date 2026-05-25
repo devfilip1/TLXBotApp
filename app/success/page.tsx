@@ -12,10 +12,11 @@ function SuccessPageContent() {
   const { session, isLoading, refreshSubscription } = useAuthViewModel();
   const [countdown, setCountdown] = useState(5);
   const [hasSynced, setHasSynced] = useState(false);
+  const [syncAttempts, setSyncAttempts] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionId && session?.access_token && !hasSynced) {
-      setHasSynced(true);
+    if (sessionId && session?.access_token && !hasSynced && syncAttempts < 3) {
       fetch("/api/stripe/sync", {
         method: "POST",
         headers: {
@@ -24,10 +25,28 @@ function SuccessPageContent() {
         },
         body: JSON.stringify({ sessionId }),
       })
-        .then(() => refreshSubscription())
-        .catch(console.error);
+        .then(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            const message = data?.error || "Sync request failed";
+            throw new Error(message);
+          }
+          setHasSynced(true);
+          await refreshSubscription();
+        })
+        .catch((error) => {
+          console.error("Success sync failed:", error);
+          setSyncError(error.message);
+          setSyncAttempts((prev) => prev + 1);
+        });
     }
-  }, [sessionId, session?.access_token, hasSynced, refreshSubscription]);
+  }, [
+    sessionId,
+    session?.access_token,
+    hasSynced,
+    refreshSubscription,
+    syncAttempts,
+  ]);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -110,6 +129,11 @@ function SuccessPageContent() {
         <p style={{ marginTop: "2rem" }}>
           Redirecting to dashboard in {countdown} seconds...
         </p>
+        {syncError && (
+          <p style={{ marginTop: "1rem", color: "#f87171" }}>
+            Erro ao sincronizar assinatura: {syncError}
+          </p>
+        )}
       </div>
     </div>
   );

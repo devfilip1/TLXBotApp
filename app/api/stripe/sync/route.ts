@@ -19,9 +19,7 @@ export async function POST(request: Request) {
     }
 
     const authHeader = request.headers.get("Authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const token = authHeader?.replace("Bearer ", "");
 
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["subscription"],
@@ -30,22 +28,28 @@ export async function POST(request: Request) {
     if (checkoutSession && checkoutSession.subscription) {
       const subscription = checkoutSession.subscription as Stripe.Subscription;
 
-      // Strategy 1: use supabaseUUID stored in subscription metadata at checkout time
-      let userId: string | null = subscription.metadata?.supabaseUUID ?? null;
+      let userId: string | null =
+        checkoutSession.client_reference_id ??
+        (subscription.metadata?.supabaseUUID as string | null) ??
+        null;
 
-      // Strategy 2: fallback — look up via customers table
       if (!userId) {
-        const { data: customerData } = await supabaseAdmin
-          .from("customers")
-          .select("user_id")
-          .eq("stripe_customer_id", subscription.customer as string)
-          .single();
-        userId = customerData?.user_id ?? null;
+        const stripeCustomerId =
+          typeof checkoutSession.customer === "string"
+            ? checkoutSession.customer
+            : (subscription.customer as string);
+
+        if (stripeCustomerId) {
+          const { data: customerData } = await supabaseAdmin
+            .from("customers")
+            .select("user_id")
+            .eq("stripe_customer_id", stripeCustomerId)
+            .single();
+          userId = customerData?.user_id ?? null;
+        }
       }
 
-      // Strategy 3: fallback — resolve from the authenticated token
-      if (!userId) {
-        const token = authHeader.replace("Bearer ", "");
+      if (!userId && token) {
         const supabaseClient = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -56,62 +60,79 @@ export async function POST(request: Request) {
         userId = user?.id ?? null;
       }
 
-      if (userId) {
-        // Ensure customer<->user mapping exists for future webhook events
+      if (!userId) {
+        console.error("[sync] could not resolve user for checkout session", {
+          sessionId,
+          client_reference_id: checkoutSession.client_reference_id,
+          subscriptionMetadata: subscription.metadata,
+          customer: checkoutSession.customer,
+        });
+        return NextResponse.json(
+          { error: "Could not resolve user for checkout session" },
+          { status: 400 },
+        );
+      }
+
+      // Ensure customer<->user mapping exists for future webhook events
+      const stripeCustomerId =
+        typeof checkoutSession.customer === "string"
+          ? checkoutSession.customer
+          : (subscription.customer as string);
+      if (stripeCustomerId) {
         await supabaseAdmin.from("customers").upsert(
           {
             user_id: userId,
-            stripe_customer_id: subscription.customer as string,
+            stripe_customer_id: stripeCustomerId,
           },
           { onConflict: "user_id" },
         );
-
-        const item = subscription.items.data[0];
-        const periodEndValue =
-          item?.current_period_end ??
-          (subscription as any).current_period_end ??
-          null;
-
-        const periodEnd = Number(periodEndValue);
-        if (!Number.isFinite(periodEnd) || periodEnd <= 0) {
-          console.error("Sync error: invalid current_period_end", {
-            subscriptionId: subscription.id,
-            current_period_end: periodEndValue,
-            itemCurrentPeriodEnd: item?.current_period_end,
-            subscriptionCurrentPeriodEnd: (subscription as any)
-              .current_period_end,
-          });
-          return NextResponse.json(
-            { error: "Invalid subscription period end value" },
-            { status: 400 },
-          );
-        }
-
-        const priceId = item?.price?.id;
-        if (!priceId) {
-          console.error("Sync error: missing subscription price id", {
-            subscriptionId: subscription.id,
-            item,
-          });
-          return NextResponse.json(
-            { error: "Missing price id on subscription item" },
-            { status: 400 },
-          );
-        }
-
-        await supabaseAdmin.from("subscriptions").upsert(
-          {
-            user_id: userId,
-            stripe_subscription_id: subscription.id,
-            status: subscription.status,
-            price_id: priceId,
-            current_period_end: new Date(periodEnd * 1000).toISOString(),
-          },
-          { onConflict: "stripe_subscription_id" },
-        );
-
-        return NextResponse.json({ success: true, synced: true });
       }
+
+      const item = subscription.items.data[0];
+      const periodEndValue =
+        item?.current_period_end ??
+        (subscription as any).current_period_end ??
+        null;
+
+      const periodEnd = Number(periodEndValue);
+      if (!Number.isFinite(periodEnd) || periodEnd <= 0) {
+        console.error("Sync error: invalid current_period_end", {
+          subscriptionId: subscription.id,
+          current_period_end: periodEndValue,
+          itemCurrentPeriodEnd: item?.current_period_end,
+          subscriptionCurrentPeriodEnd: (subscription as any)
+            .current_period_end,
+        });
+        return NextResponse.json(
+          { error: "Invalid subscription period end value" },
+          { status: 400 },
+        );
+      }
+
+      const priceId = item?.price?.id;
+      if (!priceId) {
+        console.error("Sync error: missing subscription price id", {
+          subscriptionId: subscription.id,
+          item,
+        });
+        return NextResponse.json(
+          { error: "Missing price id on subscription item" },
+          { status: 400 },
+        );
+      }
+
+      await supabaseAdmin.from("subscriptions").upsert(
+        {
+          user_id: userId,
+          stripe_subscription_id: subscription.id,
+          status: subscription.status,
+          price_id: priceId,
+          current_period_end: new Date(periodEnd * 1000).toISOString(),
+        },
+        { onConflict: "stripe_subscription_id" },
+      );
+
+      return NextResponse.json({ success: true, synced: true });
     }
 
     return NextResponse.json({ success: true, synced: false });
