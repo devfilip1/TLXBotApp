@@ -32,18 +32,33 @@ export async function GET(request: Request) {
       );
     }
 
-    // Cada linha já é uma conta — ler encrypted_accounts como objeto único
+    // Cada linha já é uma conta — ler o campo password como dados criptografados
     const allAccounts = [];
 
     for (const row of rows) {
-      const acc = row.password as any;
-      if (!acc) continue;
+      const rawPassword = row.password as any;
+      if (!rawPassword) continue;
+
+      let acc: { password?: string; passwordIv?: string } = {};
+      if (typeof rawPassword === "string") {
+        try {
+          acc = JSON.parse(rawPassword);
+        } catch (error) {
+          console.error(
+            "Failed to parse raw password JSON for row:",
+            row.id,
+            error,
+          );
+          acc = {};
+        }
+      } else if (typeof rawPassword === "object") {
+        acc = rawPassword;
+      }
 
       const login = row.name || "";
-      const senha =
-        acc.password && acc.passwordIv
-          ? `${acc.passwordIv}:${acc.password}`
-          : "";
+      const senha = acc.password
+        ? `${acc.password}:${acc.passwordIv || ""}`
+        : "";
 
       if (login || senha) {
         allAccounts.push({
