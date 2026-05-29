@@ -34,15 +34,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const fetchSubscriptionData = useCallback(async (userId: string) => {
-    const { data: subData } = await supabase
+    const { data: subData, error: subError } = await supabase
       .from("subscriptions")
       .select("*")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (subData) setSubscription(subData as Subscription);
+    if (subError) {
+      console.error("[AuthProvider] fetchSubscriptionData error:", subError);
+      return;
+    }
+
+    if (subData) {
+      setSubscription(subData as Subscription);
+    } else {
+      console.warn(`[AuthProvider] no subscription found for user ${userId}`);
+    }
   }, []);
 
   useEffect(() => {
