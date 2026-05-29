@@ -118,11 +118,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async () => {
     if (user) {
       await fetchSubscriptionData(user.id);
     }
-  };
+  }, [user, fetchSubscriptionData]);
 
   const isPremium =
     subscription?.status === "active" || subscription?.status === "trialing";
@@ -131,11 +131,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (isPremium && subscription?.price_id) {
     const priceId = subscription.price_id;
     if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC) {
-      maxAccounts = 5;
+      maxAccounts = 8;
     } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO) {
-      maxAccounts = 15;
+      maxAccounts = 18;
     } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_ELITE) {
-      maxAccounts = Infinity;
+      maxAccounts = 30;
     }
   }
 
